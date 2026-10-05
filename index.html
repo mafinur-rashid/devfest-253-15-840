@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Escape - Interactive Evacuation Route Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2306b6d4'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo" aria-label="Logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm-8 4l8 4 8-4v-2.5l-8 4-8-4V15zm0-5l8 4 8-4V7.5l-8 4-8-4V10z"/>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1>
+          <span data-i18n="appTitle">Smart Escape</span>
+          <span class="badge-tag" data-i18n="badgeMock">AI DevFest 2026</span>
+        </h1>
+        <p data-i18n="appSubtitle">Interactive Evacuation Route Simulator</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- File Upload Button -->
+      <button id="btnUploadModal" class="btn" data-i18n="navUpload">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Upload JSON</span>
+      </button>
+
+      <!-- Reset Initial State -->
+      <button id="btnResetHazards" class="btn btn-danger" data-i18n="navReset">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+        <span>Reset Hazards</span>
+      </button>
+
+      <!-- Automated Test Suite -->
+      <button id="btnTestModal" class="btn btn-success" data-i18n="navTests">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Verify Test Cases</span>
+      </button>
+
+      <!-- Export Map PNG -->
+      <button id="btnExportPng" class="btn" data-i18n="navExport">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Export PNG</span>
+      </button>
+
+      <!-- High Contrast Toggle -->
+      <button id="btnHighContrast" class="btn" data-i18n="navHighContrast">
+        <span>High Contrast</span>
+      </button>
+
+      <!-- Language Toggle (EN / বাংলা) -->
+      <button id="langToggleBtn" class="btn btn-lang">
+        বাংলা
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="app-container">
+    
+    <!-- Left Map Viewport -->
+    <section class="map-viewport" aria-label="Map Canvas Area">
+      
+      <!-- Interactive Toolbar -->
+      <div class="canvas-toolbar">
+        <div class="mode-selector">
+          <button id="modeSelectStart" class="mode-btn active" title="Click room/junction to set evacuation start">
+            Start Select Mode
+          </button>
+          <button id="modeToggleHazard" class="mode-btn" title="Click any node or corridor to toggle blocked hazard">
+            Hazard Toggle Mode
+          </button>
+        </div>
+
+        <button id="btnZoomIn" class="btn" title="Zoom In" data-i18n-title="zoomIn">+</button>
+        <button id="btnZoomOut" class="btn" title="Zoom Out" data-i18n-title="zoomOut">-</button>
+        <button id="btnZoomFit" class="btn" title="Fit to Screen" data-i18n-title="zoomReset">⛶</button>
+        
+        <!-- Walkthrough Animation Button -->
+        <button id="btnWalkthrough" class="btn btn-primary" data-i18n="navWalkthrough">
+          <span>Start Walkthrough</span>
+        </button>
+      </div>
+
+      <!-- Building Name Tag -->
+      <div id="buildingNameTag" class="building-indicator">
+        East Annex - Practice Building
+      </div>
+
+      <!-- SVG Drawing Surface -->
+      <svg id="svgCanvas">
+        <defs>
+          <!-- Grid Pattern -->
+          <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          </pattern>
+          
+          <!-- Drop Shadows & Glows -->
+          <filter id="glowRoute" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#06b6d4"/>
+          </filter>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#gridPattern)" />
+        <g id="viewportGroup">
+          <g id="edgesLayer"></g>
+          <g id="routeHighlightLayer"></g>
+          <g id="nodesLayer"></g>
+          <g id="walkthroughLayer"></g>
+        </g>
+      </svg>
+
+      <!-- Map Legend -->
+      <div class="legend-panel">
+        <div class="legend-grid">
+          <div class="legend-item">
+            <span class="legend-dot room"></span>
+            <span data-i18n="legendRoom">Room</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot junction"></span>
+            <span data-i18n="legendJunction">Junction</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot exit"></span>
+            <span data-i18n="legendExit">Exit</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot hazard"></span>
+            <span data-i18n="legendBlocked">Blocked/Closed</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot route"></span>
+            <span data-i18n="legendActiveRoute">Evacuation Path</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Control & Information Sidebar -->
+    <aside class="app-sidebar" aria-label="Route and Hazard Controls">
+      <div class="sidebar-tab-content">
+        
+        <!-- Active Route Details Card -->
+        <section class="card" id="routeDetailsCard">
+          <h2 class="card-title">
+            <span data-i18n="routeCardTitle">Evacuation Plan</span>
+            <span id="routeTimeBadge" class="badge-tag">T+0 Realtime</span>
+          </h2>
+
+          <!-- Status Banner -->
+          <div id="statusBanner" class="status-banner success">
+            <span id="statusIcon">✓</span>
+            <span id="statusText">Optimal route calculated</span>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="route-grid">
+            <div class="metric-box">
+              <div class="metric-label" data-i18n="startLocation">Start Location</div>
+              <div id="startNodeDisplay" class="metric-value">R1</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label" data-i18n="targetExit">Target Exit</div>
+              <div id="targetExitDisplay" class="metric-value exit-tag">E1</div>
+            </div>
+            <div class="metric-box" style="grid-column: span 2;">
+              <div class="metric-label" data-i18n="totalCost">Total Path Cost</div>
+              <div id="totalCostDisplay" class="metric-value">7</div>
+            </div>
+          </div>
+
+          <!-- Sequence List -->
+          <div style="margin-bottom: 0.5rem;">
+            <div class="metric-label" data-i18n="routeSequence">Route Sequence</div>
+            <div id="routeSequenceDisplay" class="sequence-container">
+              <!-- Rendered as node pills -->
+            </div>
+          </div>
+
+          <!-- Alternative Routes (Optional Bonus 4.2) -->
+          <div id="altRoutesSection" style="margin-top: 1rem;">
+            <div class="metric-label" data-i18n="altRoutesTitle">Alternative Routes</div>
+            <div id="altRoutesList"></div>
+          </div>
+        </section>
+
+        <!-- Hazard Management Card -->
+        <section class="card">
+          <h2 class="card-title">
+            <span data-i18n="hazardPanelTitle">Hazard Controls</span>
+          </h2>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.8rem;" data-i18n="clickToToggle">
+            Click any map element or toggle below to simulate emergency hazards:
+          </p>
+
+          <div class="hazard-lists">
+            <div>
+              <div class="metric-label" data-i18n="nodesList">Rooms & Junctions</div>
+              <div id="hazardNodesToggleList" class="toggle-group"></div>
+            </div>
+
+            <div>
+              <div class="metric-label" data-i18n="edgesList">Corridors (Edges)</div>
+              <div id="hazardEdgesToggleList" class="toggle-group"></div>
+            </div>
+
+            <div>
+              <div class="metric-label" data-i18n="exitsList">Exits</div>
+              <div id="hazardExitsToggleList" class="toggle-group"></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </aside>
+  </main>
+
+  <!-- Upload Modal -->
+  <div id="uploadModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 data-i18n="jsonUploadTitle">Upload Custom Building JSON</h3>
+        <button class="close-btn" id="btnCloseUploadModal">&times;</button>
+      </div>
+
+      <div id="dropzoneArea" class="dropzone">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 0.75rem; color: var(--accent-cyan);">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <p data-i18n="jsonDropzone">Drop building.json here or click to browse</p>
+        <input type="file" id="fileInput" accept=".json" style="display: none;">
+      </div>
+
+      <div id="uploadErrorNotice" style="display: none;" class="status-banner danger"></div>
+
+      <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
+        <button id="btnLoadDefaultSample" class="btn btn-primary" data-i18n="jsonLoadDefault">
+          Load Sample Building Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contest Test Suite Modal -->
+  <div id="testModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 data-i18n="testSuiteTitle">Official Contest Test Cases (Section 4.1)</h3>
+        <button class="close-btn" id="btnCloseTestModal">&times;</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        These automated test cases execute the exact scenarios defined in Section 4.1 of the DevFest Smart Escape Problem Statement using the official dataset.
+      </p>
+
+      <table class="test-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Action</th>
+            <th>Expected Result</th>
+            <th>Actual Result</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="testResultsBody">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button id="btnRerunTests" class="btn btn-success" data-i18n="runAllTests">
+          Run Automated Test Suite
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="i18n.js"></script>
+  <script src="test-runner.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
