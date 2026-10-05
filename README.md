@@ -8,8 +8,8 @@ An interactive, browser-based emergency evacuation simulator that models buildin
 ## 1. Participant Identity & Submission Metadata
 - **Participant Name:** Mafinur Rashid
 - **Registration Number:** 253-15-840
-- **Repository Name:** `devfest-[registration-number]`
-- **Public Live Website Link:** [https://your-username.github.io/devfest-[registration-number]/](https://your-username.github.io/devfest-[registration-number]/) *(Deployable to GitHub Pages, Vercel, Netlify, or Cloudflare Pages)*
+- **Repository Name:** `devfest-253-15-840
+- **Public Live Website Link:** https://sparkling-sunflower-eb63d7.netlify.app
 - **Contest Date:** 6 October 2026
 - **License:** MIT License (`LICENSE`)
 
